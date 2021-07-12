@@ -1,3 +1,3 @@
-# audit_activity_classification
+# 주요 감사업무 수행내용 분류 프로젝트 (2021.7-)
 
 #### TEST
