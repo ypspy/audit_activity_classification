@@ -115,7 +115,8 @@ def returnScore(y_test, y_predict, average):
 
     return total_score
 
-def doDoc2VecVectorize(corpusTrain, model="doc2Vec"):
+def vectorizeDoc2Vec(df, model="doc2Vec"):
+    corpusTrain = transformDF2Corpus(df)
     vecList = []
     for i in corpusTrain:
         vec = model.infer_vector(i.words)
@@ -168,22 +169,22 @@ dfDoc2Vec = df
 train_corpus = transformDF2Corpus(dfDoc2Vec)
 doc2Vec.build_vocab(train_corpus)
 doc2Vec.train(train_corpus, total_examples=doc2Vec.corpus_count, epochs=doc2Vec.epochs)
-doc2VecMatrix = doDoc2VecVectorize(train_corpus)
+# doc2VecMatrix = vectorizeDoc2Vec(df)
 
-# Set Pipeline - NB
-NB = MultinomialNB()
+# # Set Pipeline - NB
+# NB = MultinomialNB()
 
-Pipeline_NB_TfIdf = Pipeline([
-    ('vect', tfidfVec),
-    ('clf', NB)
-	])
+# Pipeline_NB_TfIdf = Pipeline([
+#     ('vect', tfidfVec),
+#     ('clf', NB)
+# 	])
 
-Pipeline_NB_LDA = Pipeline([
-    ('vect', ldaVec),
-    ('clf', NB)
-	])
+# Pipeline_NB_LDA = Pipeline([
+#     ('vect', ldaVec),
+#     ('clf', NB)
+# 	])
 
-Pipeline_NB_Doc2Vec = Pipeline([
-    ('vect', doc2Vec),
-    ('clf', NB)
-	])
+# Pipeline_NB_Doc2Vec = Pipeline([
+#     ('vect', doc2Vec),
+#     ('clf', NB)
+# 	])
