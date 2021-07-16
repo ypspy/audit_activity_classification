@@ -26,6 +26,65 @@ from sklearn.pipeline import Pipeline
 
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 
+from collections import defaultdict
+
+class NgramTokenizer:
+    """
+    https://lovit.github.io/nlp/2018/10/23/ngram/
+    """
+    def __init__(self, ngrams, base_tokenizer, n_range=(1, 3)):
+        self.ngrams = ngrams
+        self.base_tokenizer = base_tokenizer
+        self.n_range = n_range
+
+    def __call__(self, sent):
+        return self.tokenize(sent)
+
+    def tokenize(self, sent):
+        if not sent:
+            return []
+
+        unigrams = self.base_tokenizer.pos(sent, join=True)
+
+        n_begin, n_end = self.n_range
+        ngrams = []
+        for n in range(n_begin, n_end + 1):
+            for ngram in self._to_ngram(unigrams, n):
+                ngrams.append('-'.join(ngram))
+        return ngrams
+
+    def _to_ngrams(self, words, n):
+        ngrams = []
+        for b in range(0, len(words) - n + 1):
+            ngram = tuple(words[b:b+n])
+            if ngram in self.ngrams:
+                ngrams.append(ngram)
+        return ngrams
+
+def get_ngram_counter(docs, min_count=10, n_range=(1,3)):
+
+    def to_ngrams(words, n):
+        ngrams = []
+        for b in range(0, len(words) - n + 1):
+            ngrams.append(tuple(words[b:b+n]))
+        return ngrams
+
+    n_begin, n_end = n_range
+    ngram_counter = defaultdict(int)
+    for doc in docs:
+        words = postprocessor.pos(doc)
+        for n in range(n_begin, n_end + 1):
+            for ngram in to_ngrams(words, n):
+                ngram_counter[ngram] += 1
+
+    ngram_counter = {
+        ngram:count for ngram, count in ngram_counter.items()
+        if count >= min_count
+    }
+
+    return ngram_counter
+
+
 
 def tokenizeDocuments(documentColumn, model, spacing=False):
     
@@ -135,15 +194,18 @@ stopwords = stopWord.stopword.to_list()
 postprocessor = Postprocessor(twitter, stopwords = stopwords)
 
 L_Tokenizer = joblib.load('L_tokenizer_auditing.pkl')
-M_Tokenizer = joblib.load('M_tokenizer_auditing.pkl')
+
+
 
 # import preprocessed dataset
 df = pd.read_excel("dataset3.preprocessed(2017-2019).xlsx", sheet_name="data")
 
+ngram_counter = get_ngram_counter(df["documents"])
+ngram_tokenizer = NgramTokenizer(ngram_counter, postprocessor)
+
 # preprocessing
-df["twitter"] = tokenizeDocuments(df["documents"], twitter)
-df["LToken"] = tokenizeDocuments(df["documents"], L_Tokenizer)
-df["MToken"] = tokenizeDocuments(df["documents"], M_Tokenizer, spacing=True)
+# df["twitter"] = tokenizeDocuments(df["documents"], postprocessor.pos)
+# df["LToken"] = tokenizeDocuments(df["documents"], L_Tokenizer)
 
 # # drop blank cells
 # drop_index = df[df['document'] == ''].index
