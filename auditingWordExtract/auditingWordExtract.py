@@ -11,6 +11,7 @@ import os
 import pandas as pd
 import re
 from soynlp.word import WordExtractor
+from soynlp.tokenizer import LTokenizer
 import joblib
 
 def doPreprocess(documentColumn):
@@ -20,12 +21,12 @@ def doPreprocess(documentColumn):
     Parameters
     ----------
     documentColumn : pandas.core.series.Series
-        Dataframe의 문서열을 입력
+        Dataframe의 문서열
 
     Returns
     -------
-    container : list
-        처리된 문서를 리스트에 담아서 반환
+    container : TYPE
+        DESCRIPTION.
 
     """
     container = []
@@ -51,5 +52,9 @@ word_extractor = WordExtractor(min_frequency=100,
                                min_right_branching_entropy=0.0)
 
 word_extractor.train(df["documents"])
+words = word_extractor.extract()
 
-joblib.dump(word_extractor, './word_extractor_auditing.pkl')
+cohesion_score = {word:score.cohesion_forward for word, score in words.items()}
+tokenizer = LTokenizer(scores=cohesion_score)
+
+joblib.dump(tokenizer, './word_extractor_auditing.pkl')
