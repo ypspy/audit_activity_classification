@@ -12,6 +12,8 @@ import random
 import os
 
 from ckonlpy.tag import Twitter, Postprocessor
+import joblib
+from soynlp.tokenizer import LTokenizer
 
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.model_selection import train_test_split
@@ -25,29 +27,24 @@ from sklearn.pipeline import Pipeline
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 
 
-def doCleansing(textSeries):
-    """
-    Parameters
-    ----------
-    textSeries : pandas.series
-        dataframe에서 선택한 문서열 (document column)
-
-    Returns
-    -------
-    data : TYPE
-        DESCRIPTION.
-    """
-    data = []
-    for i in list(textSeries):
-        temp = re.sub('[-=+,#/\?:^$.@*\"※~&%ㆍ!』\\‘|\(\)\[\]\<\>`\'…》]', '', str(i))  # 특수문자 제거
-
-        container = []
-        for j in postprocessor.pos(temp):
-            if j[1] == 'Noun':
-                container.append(j[0])
-        temp = ' '.join(container)  # 형태소 분석 후 명사만 추출하고 불용어 제거
-        data.append(temp)
-    return data
+def tokenizeDocuments(documentColumn, model, spacing=False):
+    
+    container = []
+    for string in documentColumn:
+        string = re.sub('[-=+,#/\?:^$.@*\"※~&%ㆍ·!』\\‘|\(\)\[\]\<\>`\'…》]', '', string)  # 특수문자 제거
+        string = re.sub('\w*[0-9]\w*', '', string)  # 숫자 제거
+        string = re.sub('\w*[a-zA-Z]\w*', '', string)  # 알파벳 제거
+        string = string.strip()  # 문서 앞뒤 공백 제거
+        if spacing:
+            string = ''.join(string.split())  # Remove whitespace 
+        else:
+            string = ' '.join(string.split())  # Replace Multiple whitespace into one
+        tokenList = model(string)
+        for i in tokenList:
+            if i in stopwords:
+                tokenList.remove(i)
+        container.append(tokenList)
+    return container
 
 def vectorizeCorpus(corpusArray, model):
     """    
@@ -137,38 +134,43 @@ stopWord = pd.read_csv("dataset7.stopwords.csv", names=["stopword"])
 stopwords = stopWord.stopword.to_list()
 postprocessor = Postprocessor(twitter, stopwords = stopwords)
 
+L_Tokenizer = joblib.load('L_tokenizer_auditing.pkl')
+M_Tokenizer = joblib.load('M_tokenizer_auditing.pkl')
+
 # import preprocessed dataset
 df = pd.read_excel("dataset3.preprocessed(2017-2019).xlsx", sheet_name="data")
 
 # preprocessing
-df["document"] = doCleansing(df["document"])
+df["twitter"] = tokenizeDocuments(df["documents"], twitter)
+df["LToken"] = tokenizeDocuments(df["documents"], L_Tokenizer)
+df["MToken"] = tokenizeDocuments(df["documents"], M_Tokenizer, spacing=True)
 
-# drop blank cells
-drop_index = df[df['document'] == ''].index
-df = df.drop(drop_index)
+# # drop blank cells
+# drop_index = df[df['document'] == ''].index
+# df = df.drop(drop_index)
 
-# sample and export training data 
-dfLabel = df['document'].sample(n=1000, random_state=1)
-dfLabel.to_excel("dataset4.trainingData.xlsx") 
+# # sample and export training data 
+# dfLabel = df['document'].sample(n=1000, random_state=1)
+# dfLabel.to_excel("dataset4.trainingData.xlsx") 
 
-# Word Embedding - Counter
-countVec = CountVectorizer()
-countVecMatrix = countVec.fit_transform(df["document"])
+# # Word Embedding - Counter
+# countVec = CountVectorizer()
+# countVecMatrix = countVec.fit_transform(df["document"])
 
-# Word Embedding - TF-IDF
-tfidfVec = TfidfVectorizer()
-tfidfVecMatrix = tfidfVec.fit_transform(df["document"])
+# # Word Embedding - TF-IDF
+# tfidfVec = TfidfVectorizer()
+# tfidfVecMatrix = tfidfVec.fit_transform(df["document"])
 
-# Word Embedding - LDA
-ldaVec = LatentDirichletAllocation(n_components=10, random_state=1)
-ldaVecMatrix = ldaVec.fit_transform(countVecMatrix)
+# # Word Embedding - LDA
+# ldaVec = LatentDirichletAllocation(n_components=10, random_state=1)
+# ldaVecMatrix = ldaVec.fit_transform(countVecMatrix)
 
-# Word Embedding - Doc2Vec 
-doc2Vec = Doc2Vec()
-dfDoc2Vec = df
-train_corpus = transformDF2Corpus(dfDoc2Vec)
-doc2Vec.build_vocab(train_corpus)
-doc2Vec.train(train_corpus, total_examples=doc2Vec.corpus_count, epochs=doc2Vec.epochs)
+# # Word Embedding - Doc2Vec 
+# doc2Vec = Doc2Vec()
+# dfDoc2Vec = df
+# train_corpus = transformDF2Corpus(dfDoc2Vec)
+# doc2Vec.build_vocab(train_corpus)
+# doc2Vec.train(train_corpus, total_examples=doc2Vec.corpus_count, epochs=doc2Vec.epochs)
 # doc2VecMatrix = vectorizeDoc2Vec(df)
 
 # # Set Pipeline - NB
