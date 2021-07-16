@@ -20,12 +20,12 @@ def doPreprocess(documentColumn):
     Parameters
     ----------
     documentColumn : pandas.core.series.Series
-        Dataframe의 문서열
+        Dataframe의 문서열을 입력
 
     Returns
     -------
-    container : TYPE
-        DESCRIPTION.
+    container : list
+        처리된 문서를 리스트에 담아서 반환
 
     """
     container = []
