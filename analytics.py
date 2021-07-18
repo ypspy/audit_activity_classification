@@ -211,44 +211,44 @@ ngram_tokenizer = NgramTokenizer(ngram_counter, postprocessor)
 # drop_index = df[df['document'] == ''].index
 # df = df.drop(drop_index)
 
-# # sample and export training data 
-# dfLabel = df['document'].sample(n=1000, random_state=1)
-# dfLabel.to_excel("dataset4.trainingData.xlsx") 
+# sample and export training data 
+dfLabel = df['document'].sample(n=1000, random_state=1)
+dfLabel.to_excel("dataset4.trainingData.xlsx") 
 
-# # Word Embedding - Counter
-# countVec = CountVectorizer()
-# countVecMatrix = countVec.fit_transform(df["document"])
+# Word Embedding - Counter
+countVec = CountVectorizer()
+countVecMatrix = countVec.fit_transform(df["document"])
 
-# # Word Embedding - TF-IDF
-# tfidfVec = TfidfVectorizer()
-# tfidfVecMatrix = tfidfVec.fit_transform(df["document"])
+# Word Embedding - TF-IDF
+tfidfVec = TfidfVectorizer()
+tfidfVecMatrix = tfidfVec.fit_transform(df["document"])
 
-# # Word Embedding - LDA
-# ldaVec = LatentDirichletAllocation(n_components=10, random_state=1)
-# ldaVecMatrix = ldaVec.fit_transform(countVecMatrix)
+# Word Embedding - LDA
+ldaVec = LatentDirichletAllocation(n_components=10, random_state=1)
+ldaVecMatrix = ldaVec.fit_transform(countVecMatrix)
 
-# # Word Embedding - Doc2Vec 
-# doc2Vec = Doc2Vec()
-# dfDoc2Vec = df
-# train_corpus = transformDF2Corpus(dfDoc2Vec)
-# doc2Vec.build_vocab(train_corpus)
-# doc2Vec.train(train_corpus, total_examples=doc2Vec.corpus_count, epochs=doc2Vec.epochs)
-# doc2VecMatrix = vectorizeDoc2Vec(df)
+# Word Embedding - Doc2Vec 
+doc2Vec = Doc2Vec()
+dfDoc2Vec = df
+train_corpus = transformDF2Corpus(dfDoc2Vec)
+doc2Vec.build_vocab(train_corpus)
+doc2Vec.train(train_corpus, total_examples=doc2Vec.corpus_count, epochs=doc2Vec.epochs)
+doc2VecMatrix = vectorizeDoc2Vec(df)
 
-# # Set Pipeline - NB
-# NB = MultinomialNB()
+# Set Pipeline - NB
+NB = MultinomialNB()
 
-# Pipeline_NB_TfIdf = Pipeline([
-#     ('vect', tfidfVec),
-#     ('clf', NB)
-# 	])
+Pipeline_NB_TfIdf = Pipeline([
+    ('vect', tfidfVec),
+    ('clf', NB)
+ 	])
 
-# Pipeline_NB_LDA = Pipeline([
-#     ('vect', ldaVec),
-#     ('clf', NB)
-# 	])
+Pipeline_NB_LDA = Pipeline([
+    ('vect', ldaVec),
+    ('clf', NB)
+ 	])
 
-# Pipeline_NB_Doc2Vec = Pipeline([
-#     ('vect', doc2Vec),
-#     ('clf', NB)
-# 	])
+Pipeline_NB_Doc2Vec = Pipeline([
+    ('vect', doc2Vec),
+    ('clf', NB)
+ 	])
