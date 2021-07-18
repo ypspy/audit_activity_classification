@@ -146,5 +146,8 @@ ngram_tokenizer = NgramTokenizer(ngram_counter, komoran)
 
 ngramList = []
 
-for key, value in ngram_counter.items():
-    ngramList.append(key)
+for key in ngram_counter.items():
+    if "/N" in key[0][0] and "/N" in key[0][-1]:
+        key = "".join(key[0])
+        key = re.sub('[\/A-Z]', '-', key)
+        ngramList.append(key)
