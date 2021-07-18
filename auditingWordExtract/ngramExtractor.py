@@ -14,37 +14,6 @@ import pandas as pd
 import re
 from collections import defaultdict
 
-class NgramTokenizer:
-
-    def __init__(self, ngrams, base_tokenizer, n_range=(1, 3)):
-        self.ngrams = ngrams
-        self.base_tokenizer = base_tokenizer
-        self.n_range = n_range
-
-    def __call__(self, sent):
-        return self.tokenize(sent)
-
-    def tokenize(self, sent):
-        if not sent:
-            return []
-
-        unigrams = self.base_tokenizer.pos(sent, join=True)
-
-        n_begin, n_end = self.n_range
-        ngrams = []
-        for n in range(n_begin, n_end + 1):
-            for ngram in self._to_ngrams(unigrams, n):
-                ngrams.append('-'.join(ngram))
-        return ngrams
-
-    def _to_ngrams(self, words, n):
-        ngrams = []
-        for b in range(0, len(words) - n + 1):
-            ngram = tuple(words[b:b+n])
-            if ngram in self.ngrams:
-                ngrams.append(ngram)
-        return ngrams
-
 def doPreprocess(documentColumn):
     """
     Dataframe에서 문서열을 받아와서, 특수문자, 숫자, 알파벳, 불필요한 공백을 제거
@@ -100,17 +69,6 @@ def get_ngram_counter(docs, min_count=10, n_range=(1,3)):
 
     return ngram_counter
 
-def get_ngram_score(ngram_counter, delta=30):
-    ngrams_ = {}
-    for ngram, count in ngram_counter.items():
-        if len(ngram) == 1:
-            continue
-        first = ngram_counter[ngram[:-1]]
-        second = ngram_counter[ngram[1:]]
-        score = (count - delta) / (first * second)
-        if score > 0:
-            ngrams_[ngram] = (count, score)
-    return ngrams_
 
 # data preprocessing
 
@@ -142,8 +100,6 @@ df = df.append(df2)
 komoran = Komoran()
 ngram_counter = get_ngram_counter(df["documents"], n_range=(1,5))  # 5 단어까지 추출
 
-ngram_tokenizer = NgramTokenizer(ngram_counter, komoran)
-
 ngramList = []
 
 for key in ngram_counter.items():
@@ -151,3 +107,6 @@ for key in ngram_counter.items():
         key = "".join(key[0])
         key = re.sub('[\/A-Z]', '-', key)
         ngramList.append(key)
+
+exportNgramDictionary = pd.DataFrame(ngramList)
+exportNgramDictionary.to_excel('Ngramdictionary.xlsx')
