@@ -6,6 +6,7 @@ Created on Sat Jul 17 11:25:51 2021
 
 1. n-gram extraction https://lovit.github.io/nlp/2018/10/23/ngram/
 2. defaultdict(int) https://itholic.github.io/python-defaultdict/
+3. Komoran PoS Table https://docs.komoran.kr/firststep/postypes.html#pos-table
 """
 
 from konlpy.tag import Komoran
@@ -102,11 +103,18 @@ ngram_counter = get_ngram_counter(df["documents"], n_range=(1,5))  # 5 단어까
 
 ngramList = []
 
+matchesPos = ["/N", "/J", "/M", "/XSN"]
 for key in ngram_counter.items():
-    if "/N" in key[0][0] and "/N" in key[0][-1]:
-        key = "".join(key[0])
-        key = re.sub('[\/A-Z]', '-', key)
-        ngramList.append(key)
+    isAppendable = []
+    for morpheme in key[0]:
+        if all(x not in morpheme for x in matchesPos):
+            isAppendable.append(False)
+        else:
+            isAppendable.append(True)
+    if all(isAppendable) and "/N" in key[0][0] and "/N" in key[0][-1]:
+        keyText = "".join(key[0])
+        keyText2 = re.sub('[\/A-Z]', '-', keyText)
+        ngramList.append([keyText, keyText2, key[1]])
 
 exportNgramDictionary = pd.DataFrame(ngramList)
 exportNgramDictionary.to_excel('Ngramdictionary.xlsx')
