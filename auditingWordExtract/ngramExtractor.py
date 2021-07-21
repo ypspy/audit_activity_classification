@@ -58,7 +58,7 @@ def get_ngram_counter(docs, min_count=10, n_range=(1,3)):
     n_begin, n_end = n_range
     ngram_counter = defaultdict(int)
     for doc in docs:
-        words = komoran.pos(doc, join=True)
+        words = komoran.nouns(doc)  # pos(doc, join=True)
         for n in range(n_begin, n_end + 1):
             for ngram in to_ngrams(words, n):
                 ngram_counter[ngram] += 1
@@ -99,22 +99,15 @@ df = df.append(df2)
 # N-gram 적용 토큰화
 
 komoran = Komoran()
-ngram_counter = get_ngram_counter(df["documents"], n_range=(1,5))  # 5 단어까지 추출
+ngram_counter = get_ngram_counter(df["documents"], min_count=100, n_range=(2,5))  # 2-5 단어까지 추출
 
 ngramList = []
 
-matchesPos = ["/N", "/J", "/M", "/XSN"]
 for key in ngram_counter.items():
-    isAppendable = []
-    for morpheme in key[0]:
-        if all(x not in morpheme for x in matchesPos):
-            isAppendable.append(False)
-        else:
-            isAppendable.append(True)
-    if all(isAppendable) and "/N" in key[0][0] and "/N" in key[0][-1]:
-        keyText = "".join(key[0])
-        keyText2 = re.sub('[\/A-Z]', '-', keyText)
-        ngramList.append([keyText, keyText2, key[1]])
+    # 전처리에서 명사만 추출하도록 변경        
+    keyText = "-".join(key[0])
+    keyText2 = keyText.replace("-", "")
+    ngramList.append([keyText, keyText2, key[1]])
 
 exportNgramDictionary = pd.DataFrame(ngramList)
 exportNgramDictionary.to_excel('Ngramdictionary.xlsx')
