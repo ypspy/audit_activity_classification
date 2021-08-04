@@ -8,9 +8,9 @@ Created on Wed Jul 28 22:19:20 2021
 from soynlp.noun import LRNounExtractor_v2
 from soynlp.word import WordExtractor
 from soynlp.tokenizer import LTokenizer
-from konlpy.tag import Hannanum, Kkma, Okt
+from konlpy.tag import Hannanum, Kkma, Okt, Mecab
 from PyKomoran import Komoran
-from collections import defaultdict
+from ckonlpy.tag import Twitter
 import math
 
 import os
@@ -85,86 +85,68 @@ def doPreprocess(documentColumn, spacing = True, desc = None):
         container.append(string)
     return container
 
-def get_ngram_counter(dataframe, min_count=10, n_range=(1,3)):
+def removeStopword(dataframe):
+    stopWord = pd.read_csv("dataset7.stopwords.csv", names=["stopword"])
+    stopword = stopWord.stopword.to_list()
+    
+    container = []
+    for packages in dataframe:
+        container2 = []
+        for words in packages:
+            if words not in stopword:
+                container2.append(words)
+        container.append(container2)
+    return container
 
-    def to_ngrams(words, n):
-        ngrams = []
-        for b in range(0, len(words) - n + 1):
-            ngrams.append(tuple(words[b:b+n]))
-        return ngrams
-
-    n_begin, n_end = n_range
-    ngram_counter = defaultdict(int)
-    for doc in dataframe:  # https://calmcode.io/tqdm/nested-loops.html
-        
-        for n in range(n_begin, n_end + 1):
-            for ngram in to_ngrams(doc, n):
-                ngram_counter[ngram] += 1
-
-    ngram_counter = {
-        ngram:count for ngram, count in ngram_counter.items()
-        if count >= min_count
-    }
-
-    return ngram_counter
 
 # Data preprocessing
 
-os.chdir(r"C:\analytics")
+os.chdir("/home/yoonseokseong/downloads/idea-IC-212.4746.92/bin")
 
-df = pd.read_excel("tokenizerEvaluationData - tagging.xlsm", sheet_name="data")
+stopWord = pd.read_csv("dataset7.stopwords.csv", names=["stopword"])
+stopword = stopWord.stopword.to_list()
+
+df = pd.read_excel("tokenizerEvaluationData - tagging.xlsm", sheet_name="data", engine="openpyxl")
 df = df.loc[:, ~df.columns.str.contains('Unnamed')]  # 제거
 df = df.dropna()  # Nan 제거
 df["documents"] = doPreprocess(df["documents"], desc="Preprocess")
 df["documents"].str.strip()  # Whitespace 제거
 df["count"] = df["documents"].str.len()  # string 수 
-df = df[df["count"] > 1]  # 입력내용이 3을 초과하는 입력값
+df = df[df["count"] > 1]  # 입력내용이 3을 초과하는 입력값   
 
 # Tokenization
 
 df["split"] = [' '.join(x.split()) for x in tqdm(df["documents"], desc="split")]
 
 komoran = Komoran("EXP")
-df["Komoran_morph"] = [' '.join(komoran.get_morphes_by_tags(x)) for x in tqdm(df["documents"], desc="Komoran_morph")]
-df["Komoran_noun"] = [' '.join(komoran.get_nouns(x)) for x in tqdm(df["documents"], desc="Komoran_noun")]
+df["Komoran_morph"] = [' '.join(x) for x in removeStopword([komoran.get_morphes_by_tags(x) for x in tqdm(df["documents"], desc="Komoran_morph")])]
+df["Komoran_noun"] = [' '.join(x) for x in removeStopword([komoran.get_nouns(x) for x in tqdm(df["documents"], desc="Komoran_noun")])]
 
 hannanum = Hannanum()
-df["Hannanum_morph"] = [' '.join(hannanum.morphs(x)) for x in tqdm(df["documents"], desc="Hannanum_morph")]
-df["Hannanum_noun"] = [' '.join(hannanum.nouns(x)) for x in tqdm(df["documents"], desc="Hannanum_noun")]
+df["Hannanum_morph"] = [' '.join(x) for x in removeStopword([hannanum.morphs(x) for x in tqdm(df["documents"], desc="Hannanum_morph")])]
+df["Hannanum_noun"] = [' '.join(x) for x in removeStopword([hannanum.nouns(x) for x in tqdm(df["documents"], desc="Hannanum_noun")])]
 
 kkma = Kkma()
-df["Kkma_morph"] = [' '.join(kkma.morphs(x)) for x in tqdm(df["documents"], desc="Kkma_morph")]
-df["Kkma_noun"] = [' '.join(kkma.nouns(x)) for x in tqdm(df["documents"], desc="Kkma_noun")]
+df["Kkma_morph"] = [' '.join(x) for x in removeStopword([kkma.morphs(x) for x in tqdm(df["documents"], desc="Kkma_morph")])]
+df["Kkma_noun"] = [' '.join(x) for x in removeStopword([kkma.nouns(x) for x in tqdm(df["documents"], desc="Kkma_noun")])]
 
 okt = Okt()
-df["Okt_morph"] = [' '.join(okt.morphs(x)) for x in tqdm(df["documents"], desc="Okt_morph")]
-df["Okt_noun"] = [' '.join(okt.nouns(x)) for x in tqdm(df["documents"], desc="Okt_noun")]
+df["Okt_morph"] = [' '.join(x) for x in removeStopword([okt.morphs(x) for x in tqdm(df["documents"], desc="Okt_morph")])]
+df["Okt_noun"] = [' '.join(x) for x in removeStopword([okt.nouns(x) for x in tqdm(df["documents"], desc="Okt_noun")])]
 
-# komoran + 사용자 사전
+mecab = Mecab()
+df["Mecab_morph"] = [' '.join(x) for x in removeStopword([mecab.morphs(x) for x in tqdm(df["documents"], desc="Mecab_morph")])]
+df["Mecab_noun"] = [' '.join(x) for x in removeStopword([mecab.nouns(x) for x in tqdm(df["documents"], desc="Mecab_noun")])]
 
-komoran_2gram = Komoran("EXP")
-komoran_2gram.set_user_dic("2gramdict.txt")
-df["Komoran_noun_2gram"] = [' '.join(komoran_2gram.get_nouns(x)) for x in tqdm(df["Komoran_noun"], desc="Komoran_noun_2gram")]
+twitter = Twitter()
+df["Twitter_morph"] = [' '.join(x) for x in removeStopword([twitter.morphs(x) for x in tqdm(df["documents"], desc="Twitter_morph")])]
+df["Twitter_noun"] = [' '.join(x) for x in removeStopword([twitter.nouns(x) for x in tqdm(df["documents"], desc="Twitter_noun")])]
 
-komoran_3gram = Komoran("EXP")
-komoran_3gram.set_user_dic("3gramdict.txt")
-df["Komoran_noun_3gram"] = [' '.join(komoran_3gram.get_nouns(x)) for x in tqdm(df["Komoran_noun"], desc="Komoran_noun_3gram")]
-
-komoran_4gram = Komoran("EXP")
-komoran_4gram.set_user_dic("4gramdict.txt")
-df["Komoran_noun_4gram"] = [' '.join(komoran_4gram.get_nouns(x)) for x in tqdm(df["Komoran_noun"], desc="Komoran_noun_4gram")]
-
-komoran_5gram = Komoran("EXP")
-komoran_5gram.set_user_dic("5gramdict.txt")
-df["Komoran_noun_5gram"] = [' '.join(komoran_5gram.get_nouns(x)) for x in tqdm(df["Komoran_noun"], desc="Komoran_noun_5gram")]
-
-komoran_soynlp = Komoran("EXP")
-komoran_soynlp.set_user_dic("soynlpdict.txt")
-df["Komoran_noun_soynlp"] = [' '.join(komoran_soynlp.get_nouns(x)) for x in tqdm(df["Komoran_noun"], desc="Komoran_noun_soynlp")]
+df.to_csv("dataframe.txt")  # 결과 모니터링
 
 # Soynlp
 
-df2 = pd.read_excel("dataset3.preprocessed(2017-2019).xlsx", sheet_name="data")
+df2 = pd.read_excel("dataset3.preprocessed(2017-2019).xlsx", sheet_name="data", engine="openpyxl")
 df2 = df2.dropna()  # Nan 제거
 df2["documents"] = doPreprocess(df2["documents"], desc="감사업무수행내역")
 df2["documents"].str.strip()  # Whitespace 제거
@@ -192,7 +174,7 @@ combined_scores.update(
 )
 
 l_tokenizer = LTokenizer(scores=combined_scores)
-df["Soynlp_morph"] = [' '.join(l_tokenizer.tokenize(x)) for x in tqdm(df["documents"], desc="Soynlp_Morph")]
+df["Soynlp_morph"] = [' '.join(x) for x in removeStopword([l_tokenizer.tokenize(x) for x in tqdm(df["documents"], desc="Soynlp_Morph")])]
 
 # Vectorizer and Classifier
 
@@ -202,24 +184,24 @@ nb = MultinomialNB()
 
 # Vectorize
 
-splitVec = countVec.fit_transform(df["split"])
+splitVec = countVec.fit_transform(df["split"].values.astype("U"))
 
-komoranMorphVec = countVec.fit_transform(df["Komoran_morph"])
-hannanumMorphVec = countVec.fit_transform(df["Hannanum_morph"])
-kkmaMorphVec = countVec.fit_transform(df["Kkma_morph"])
-oktMorphVec = countVec.fit_transform(df["Okt_morph"])
-soynlpMorphVec = countVec.fit_transform(df["Soynlp_morph"])
+komoranMorphVec = countVec.fit_transform(df["Komoran_morph"].values.astype("U"))
+hannanumMorphVec = countVec.fit_transform(df["Hannanum_morph"].values.astype("U"))
+kkmaMorphVec = countVec.fit_transform(df["Kkma_morph"].values.astype("U"))
+oktMorphVec = countVec.fit_transform(df["Okt_morph"].values.astype("U"))
+mecabMorphVec = countVec.fit_transform(df["Mecab_morph"].values.astype('U'))
+twitterMorphVec = countVec.fit_transform(df["Twitter_morph"].values.astype('U'))
+soynlpMorphVec = countVec.fit_transform(df["Soynlp_morph"].values.astype("U"))
 
-komoranNounVec = countVec.fit_transform(df["Komoran_noun"])
-hannanumNounVec = countVec.fit_transform(df["Hannanum_noun"])
-kkmaNounVec = countVec.fit_transform(df["Kkma_noun"])
-oktNounVec = countVec.fit_transform(df["Okt_noun"])
+komoranNounVec = countVec.fit_transform(df["Komoran_noun"].values.astype("U"))
+hannanumNounVec = countVec.fit_transform(df["Hannanum_noun"].values.astype("U"))
+kkmaNounVec = countVec.fit_transform(df["Kkma_noun"].values.astype("U"))
+oktNounVec = countVec.fit_transform(df["Okt_noun"].values.astype("U"))
+mecabNounVec = countVec.fit_transform(df["Mecab_noun"].values.astype('U'))
+twitterNounVec = countVec.fit_transform(df["Twitter_noun"].values.astype("U"))
 
-komoranNounVec2gram = countVec.fit_transform(df["Komoran_noun_2gram"])
-komoranNounVec3gram = countVec.fit_transform(df["Komoran_noun_3gram"])
-komoranNounVec4gram = countVec.fit_transform(df["Komoran_noun_4gram"])
-komoranNounVec5gram = countVec.fit_transform(df["Komoran_noun_5gram"])
-komoranNounVecSoynlp = countVec.fit_transform(df["Komoran_noun_soynlp"])
+print("Twitter Shape: {}".format(twitterNounVec.shape))
 
 # Evaluate
 
@@ -228,16 +210,16 @@ vectors = {"splitVec": splitVec,
            "hannanumMorphVec": hannanumMorphVec,
            "kkmaMorphVec": kkmaMorphVec,
            "oktMorphVec": oktMorphVec,
+           "mecabMorphVec": mecabMorphVec,
+           "twitterMorphVec": twitterMorphVec,
            "soynlpMorphVec": soynlpMorphVec,
            "komoranNounVec": komoranNounVec,
            "hannanumNounVec": hannanumNounVec,
            "kkmaNounVec": kkmaNounVec,
            "oktNounVec": oktNounVec,
-           "komoranNounVec2gram": komoranNounVec2gram,
-           "komoranNounVec3gram": komoranNounVec3gram,
-           "komoranNounVec4gram": komoranNounVec4gram,
-           "komoranNounVec5gram": komoranNounVec5gram,
-           "komoranNounVecSoynlp": komoranNounVecSoynlp}
+           "mecabNounVec": mecabNounVec,
+           "twitterNounVec": twitterNounVec,}
+
 models = [randomForest, nb]
 
 for model in models:
@@ -246,3 +228,4 @@ for model in models:
         evaluateVectorizer(value, df["Label"], model)
         print("---")
         returnCVScore(value, df["Label"], model)
+
