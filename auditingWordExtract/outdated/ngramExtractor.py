@@ -84,9 +84,9 @@ df = df.loc[:, ~df.columns.str.contains('B')]  # 제거
 df = df.dropna()  # Nan 제거
 
 df["documents"] = doPreprocess(df["documents"], 
-                               komoran.nouns, 
-                               stopwords,
-                               desc="Audit Standard")
+                                komoran.nouns, 
+                                stopwords,
+                                desc="Audit Standard")
 
 df["documents"].str.strip()  # Whitespace 제거
 df["count"] = df["documents"].str.len()  # string 수 

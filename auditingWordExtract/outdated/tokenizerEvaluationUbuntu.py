@@ -5,7 +5,13 @@ Created on Wed Jul 28 22:19:20 2021
 @author: yoonseok
 """
 
-from konlpy.tag import Mecab
+from soynlp.noun import LRNounExtractor_v2
+from soynlp.word import WordExtractor
+from soynlp.tokenizer import LTokenizer
+from konlpy.tag import Hannanum, Kkma, Okt
+from PyKomoran import Komoran
+from ckonlpy.tag import Twitter
+import math
 
 import os
 import pandas as pd
@@ -82,43 +88,45 @@ def doPreprocess(documentColumn, spacing = True, desc = None):
 
 # Data preprocessing
 
-os.chdir(r"/mnt/c/analytics")
+# os.chdir(r"/home/yoonseokseong/downloads/idea-IC-212.4746.92/bin")
+os.chdir(r"C:\analytics")
+df = pd.read_csv("preprocessed.txt")
 
-df = pd.read_excel("tokenizerEvaluationData - tagging.xlsm", sheet_name="data")
-df = df.loc[:, ~df.columns.str.contains('Unnamed')]  # 제거
-df = df.dropna()  # Nan 제거
-df["documents"] = doPreprocess(df["documents"], desc="Preprocess")
-df["documents"].str.strip()  # Whitespace 제거
-df["count"] = df["documents"].str.len()  # string 수 
-df = df[df["count"] > 1]  # 입력내용이 3을 초과하는 입력값
+df2 = pd.read_excel("tokenizerEvaluationData - tagging.xlsm", sheet_name="data", engine="openpyxl")
+df2 = df2.loc[:, ~df2.columns.str.contains('Unnamed')]  # 제거
+df2 = df2.dropna()  # Nan 제거
+df2["documents"] = doPreprocess(df2["documents"], desc="Preprocess")
+df2["documents"].str.strip()  # Whitespace 제거
+df2["count"] = df2["documents"].str.len()  # string 수 
+df2 = df2[df2["count"] > 1]  # 입력내용이 3을 초과하는 입력값   
 
 # Tokenization
+okt = Twitter()
+df["documents"] = [str(x).replace("-", " ") for x in tqdm(df["documentsEval"], desc="Replace-")]
+df["Okt_noun"] = [okt.nouns(x) for x in tqdm(df["documents"], desc="Okt_noun")]
+df["Label"] = df2["Label"]
 
-mecab = Mecab()
-df["Mecab_morph"] = [' '.join(mecab.morphs(x)) for x in tqdm(df["documents"], desc="Mecab_morph")]
-df["Mecab_noun"] = [' '.join(mecab.nouns(x)) for x in tqdm(df["documents"], desc="Mecab_noun")]
+df2["Okt_noun"] = [' '.join(okt.nouns(x)) for x in tqdm(df2["documents"], desc="Okt_noun")]
 
-# komoran + 사용자 사전
+container = []
 
-# komoran_2gram = Komoran("EXP")
-# komoran_2gram.set_user_dic("2gramdict.txt")
-# df["Komoran_noun_2gram"] = [' '.join(komoran_2gram.get_nouns(x)) for x in tqdm(df["Komoran_noun"], desc="Komoran_noun_2gram")]
+for i in tqdm(df2["Okt_noun"]):
+    mod, count = '', 0
+    
+    for j in i.split():
+        if count:
+            mod = mod + j
+        else:
+            mod = j
+        count += 1
+    container.append(mod)
 
-# komoran_3gram = Komoran("EXP")
-# komoran_3gram.set_user_dic("3gramdict.txt")
-# df["Komoran_noun_3gram"] = [' '.join(komoran_3gram.get_nouns(x)) for x in tqdm(df["Komoran_noun"], desc="Komoran_noun_3gram")]
+df2["documentsEval"] = container
 
-# komoran_4gram = Komoran("EXP")
-# komoran_4gram.set_user_dic("4gramdict.txt")
-# df["Komoran_noun_4gram"] = [' '.join(komoran_4gram.get_nouns(x)) for x in tqdm(df["Komoran_noun"], desc="Komoran_noun_4gram")]
-
-# komoran_5gram = Komoran("EXP")
-# komoran_5gram.set_user_dic("5gramdict.txt")
-# df["Komoran_noun_5gram"] = [' '.join(komoran_5gram.get_nouns(x)) for x in tqdm(df["Komoran_noun"], desc="Komoran_noun_5gram")]
-
-# komoran_soynlp = Komoran("EXP")
-# komoran_soynlp.set_user_dic("soynlpdict.txt")
-# df["Komoran_noun_soynlp"] = [' '.join(komoran_soynlp.get_nouns(x)) for x in tqdm(df["Komoran_noun"], desc="Komoran_noun_soynlp")]
+df2["documentsEval"].to_csv('preprocessed2.txt',
+                            sep='\t',
+                            header=True,
+                            index=False)
 
 # Vectorizer and Classifier
 
@@ -128,14 +136,14 @@ nb = MultinomialNB()
 
 # Vectorize
 
-mecabMorphVec = countVec.fit_transform(df["Mecab_morph"])
-mecabNounVec = countVec.fit_transform(df["Mecab_noun"])
+oktNounVec = countVec.fit_transform(df["documents"].values.astype("U"))
+oktNounVec2 = countVec.fit_transform(df2["Okt_noun"].values.astype("U"))
 
 # Evaluate
 
 vectors = {
-           "mecabMorphVec": mecabMorphVec,
-           "mecabNounVec": mecabNounVec,}
+           "oktNounVec": oktNounVec,
+           "oktNounVec2": oktNounVec2}
 
 models = [randomForest, nb]
 
