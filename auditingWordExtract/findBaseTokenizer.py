@@ -74,7 +74,8 @@ def doPreprocess(documentColumn, spacing = True, desc = None):
     container = []
     for string in tqdm(documentColumn, desc=desc):
         string = re.sub('[-=+,#/\?:^$.@*\"“”※~&%ⅰⅱⅲ○●ㆍ°’『!』」\\‘|\(\)\[\]\<\>`\'…》]', '', string)  # 특수문자 제거
-        string = re.sub('\w*[0-9]\w*', '', string)  # 숫자 제거
+        p = re.compile("[^0-9]")
+        string = "".join(p.findall(string))  # 숫자 제거
         # string = re.sub('\w*[a-zA-Z]\w*', '', string)  # 알파벳 제거
         string = string.strip()  # 문서 앞뒤 공백 제거
         if spacing:
@@ -102,9 +103,6 @@ def removeStopword(dataframe):
 # Data preprocessing
 
 os.chdir("/home/yoonseokseong/downloads/idea-IC-212.4746.92/bin")
-
-stopWord = pd.read_csv("dataset7.stopwords.csv", names=["stopword"])
-stopword = stopWord.stopword.to_list()
 
 df = pd.read_excel("tokenizerEvaluationData - tagging.xlsm", sheet_name="data", engine="openpyxl")
 df = df.loc[:, ~df.columns.str.contains('Unnamed')]  # 제거

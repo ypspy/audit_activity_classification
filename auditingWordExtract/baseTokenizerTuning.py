@@ -171,8 +171,9 @@ def doPreprocess(documentColumn, spacing = True, desc = None):
     container = []    
     for string in tqdm(documentColumn, desc=desc):
         string = re.sub('[-=+,#/\?:^$.@*\"“”※~&%ⅰⅱⅲ○●ㆍ°’『!』」\\‘|\(\)\[\]\<\>`\'…》]', '', string)  # 특수문자 제거
-        string = re.sub('\w*[0-9]\w*', '', string)  # 숫자 제거
-        string = re.sub('\w*[a-zA-Z]\w*', '', string)  # 알파벳 제거
+        p = re.compile("[^0-9]")
+        string = "".join(p.findall(string))  # 숫자 제거
+        # string = re.sub('\w*[a-zA-Z]\w*', '', string)  # 알파벳 제거
         string = string.strip()  # 문서 앞뒤 공백 제거
         if spacing:
             string = ' '.join(string.split())  # Replace Multiple whitespace into one
@@ -219,8 +220,8 @@ twitter_Konlpy = Twitter()
 twitter = TwitterMod(twitter_Konlpy, noun=True)
 
 # N-gram Tuning
-n_range=(1,2)
-ngram_counter = get_ngram_counter(df["documents"], twitter, min_count=10, n_range=n_range)
+n_range=(1,3)
+ngram_counter = get_ngram_counter(df["documents"], twitter, min_count=2000, n_range=n_range)
 ngram_tokenizer = NgramTokenizer(ngram_counter, twitter, n_range=n_range)
 
 # Training Data
@@ -263,8 +264,8 @@ x = vectorizer.fit_transform(df2["documents"])
 
 # soynlp Vectorizer
 vectorizer = CountVectorizer(tokenizer = l_tokenizer,
-                             lowercase = False,
-                             )
+                              lowercase = False,
+                              )
 y = vectorizer.fit_transform(df2["documents"])
 
 
