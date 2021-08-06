@@ -14,6 +14,7 @@ import numpy as np
 import re
 from tqdm import tqdm
 import math
+import pickle
 
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
@@ -221,7 +222,7 @@ twitter = TwitterMod(twitter_Konlpy, noun=True)
 
 # N-gram Tuning
 n_range=(1,3)
-ngram_counter = get_ngram_counter(df["documents"], twitter, min_count=2000, n_range=n_range)
+ngram_counter = get_ngram_counter(df["documents"], twitter, min_count=10, n_range=n_range)
 ngram_tokenizer = NgramTokenizer(ngram_counter, twitter, n_range=n_range)
 
 # Training Data
@@ -257,17 +258,19 @@ combined_scores.update(
 l_tokenizer = LTokenizer(scores=combined_scores)
 
 # n-gram Vectorizer
+# pickle trained CountVectorizer (https://stackoverflow.com/questions/4529815/saving-an-object-data-persistence/4529901)
 vectorizer = CountVectorizer(tokenizer = ngram_tokenizer,
                              lowercase = False,
                              )
-x = vectorizer.fit_transform(df2["documents"])
+with open("baseTokenizer_countVec_twitter_noun_bigram.pkl", 'wb') as output:
+    x = vectorizer.fit_transform(df2["documents"])
+    pickle.dump(x, output, pickle.HIGHEST_PROTOCOL)
 
 # soynlp Vectorizer
 vectorizer = CountVectorizer(tokenizer = l_tokenizer,
                               lowercase = False,
                               )
 y = vectorizer.fit_transform(df2["documents"])
-
 
 # Machine Learning Object
 randomForest = RandomForestClassifier(random_state=99)
